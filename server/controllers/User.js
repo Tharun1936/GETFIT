@@ -82,102 +82,117 @@ export const getUserDashboard = async (req, res, next) => {
       currentDateFormatted.getDate() + 1
     );
 
-    //calculte total calories burnt
-    const totalCaloriesBurnt = await Workout.aggregate([
-      { $match: { user: user._id, date: { $gte: startToday, $lt: endToday } } },
+    // Calculate start date for weekly data (7 days ago)
+    const startWeek = new Date(
+      currentDateFormatted.getTime() - 6 * 24 * 60 * 60 * 1000
+    );
+    const startWeekFormatted = new Date(
+      startWeek.getFullYear(),
+      startWeek.getMonth(),
+      startWeek.getDate()
+    );
+
+    // OPTIMIZED: Single aggregation pipeline for today's data (calories, workouts, categories)
+    const todayDataPipeline = [
+      {
+        $match: {
+          user: user._id,
+          date: { $gte: startToday, $lt: endToday },
+        },
+      },
+      {
+        $facet: {
+          totalCalories: [
+            {
+              $group: {
+                _id: null,
+                totalCaloriesBurnt: { $sum: "$caloriesBurned" },
+              },
+            },
+          ],
+          totalWorkouts: [{ $count: "count" }],
+          categoryCalories: [
+            {
+              $group: {
+                _id: "$category",
+                totalCaloriesBurnt: { $sum: "$caloriesBurned" },
+              },
+            },
+          ],
+        },
+      },
+    ];
+
+    // OPTIMIZED: Single aggregation for weekly data (replaces 7 separate queries)
+    const weeklyDataPipeline = [
+      {
+        $match: {
+          user: user._id,
+          date: { $gte: startWeekFormatted, $lt: endToday },
+        },
+      },
       {
         $group: {
-          _id: null,
+          _id: {
+            $dateToString: { format: "%Y-%m-%d", date: "$date" },
+          },
           totalCaloriesBurnt: { $sum: "$caloriesBurned" },
         },
       },
+      {
+        $sort: { _id: 1 },
+      },
+    ];
+
+    // Execute queries in parallel for better performance
+    const [todayDataResult, weeklyDataResult] = await Promise.all([
+      Workout.aggregate(todayDataPipeline),
+      Workout.aggregate(weeklyDataPipeline),
     ]);
 
-    //Calculate total no of workouts
-    const totalWorkouts = await Workout.countDocuments({
-      user: userId,
-      date: { $gte: startToday, $lt: endToday },
-    });
-
-    //Calculate average calories burnt per workout
+    // Extract today's data
+    const todayData = todayDataResult[0] || {};
+    const totalCaloriesBurnt =
+      todayData.totalCalories?.[0]?.totalCaloriesBurnt || 0;
+    const totalWorkouts = todayData.totalWorkouts?.[0]?.count || 0;
     const avgCaloriesBurntPerWorkout =
-      totalCaloriesBurnt.length > 0
-        ? totalCaloriesBurnt[0].totalCaloriesBurnt / totalWorkouts
-        : 0;
+      totalWorkouts > 0 ? totalCaloriesBurnt / totalWorkouts : 0;
 
-    // Fetch category of workouts
-    const categoryCalories = await Workout.aggregate([
-      { $match: { user: user._id, date: { $gte: startToday, $lt: endToday } } },
-      {
-        $group: {
-          _id: "$category",
-          totalCaloriesBurnt: { $sum: "$caloriesBurned" },
-        },
-      },
-    ]);
-
-    //Format category data for pie chart
-
+    // Format category data for pie chart
+    const categoryCalories = todayData.categoryCalories || [];
     const pieChartData = categoryCalories.map((category, index) => ({
       id: index,
       value: category.totalCaloriesBurnt,
       label: category._id,
     }));
 
+    // Process weekly data - create map for quick lookup
+    const weeklyMap = new Map();
+    weeklyDataResult.forEach((day) => {
+      weeklyMap.set(day._id, day.totalCaloriesBurnt);
+    });
+
+    // Generate weeks array and match with calories
     const weeks = [];
     const caloriesBurnt = [];
     for (let i = 6; i >= 0; i--) {
       const date = new Date(
         currentDateFormatted.getTime() - i * 24 * 60 * 60 * 1000
       );
+      const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
       weeks.push(`${date.getDate()}th`);
-
-      const startOfDay = new Date(
-        date.getFullYear(),
-        date.getMonth(),
-        date.getDate()
-      );
-      const endOfDay = new Date(
-        date.getFullYear(),
-        date.getMonth(),
-        date.getDate() + 1
-      );
-
-      const weekData = await Workout.aggregate([
-        {
-          $match: {
-            user: user._id,
-            date: { $gte: startOfDay, $lt: endOfDay },
-          },
-        },
-        {
-          $group: {
-            _id: { $dateToString: { format: "%Y-%m-%d", date: "$date" } },
-            totalCaloriesBurnt: { $sum: "$caloriesBurned" },
-          },
-        },
-        {
-          $sort: { _id: 1 }, // Sort by date in ascending order
-        },
-      ]);
-
-      caloriesBurnt.push(
-        weekData[0]?.totalCaloriesBurnt ? weekData[0]?.totalCaloriesBurnt : 0
-      );
+      caloriesBurnt.push(weeklyMap.get(dateStr) || 0);
     }
 
     return res.status(200).json({
-      totalCaloriesBurnt:
-        totalCaloriesBurnt.length > 0
-          ? totalCaloriesBurnt[0].totalCaloriesBurnt
-          : 0,
-      totalWorkouts: totalWorkouts,
-      avgCaloriesBurntPerWorkout: avgCaloriesBurntPerWorkout,
+      totalCaloriesBurnt,
+      totalWorkouts,
+      avgCaloriesBurntPerWorkout,
       totalWeeksCaloriesBurnt: {
-        weeks: weeks,
+        weeks,
         caloriesBurned: caloriesBurnt,
       },
-      pieChartData: pieChartData,
+      pieChartData,
     });
   } catch (err) {
     next(err);

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo, useCallback } from "react";
 import styled from "styled-components";
 import { counts } from "../utils/data";
 import CountsCard from "../components/cards/CountsCard";
@@ -84,89 +84,67 @@ const Dashboard = () => {
 -10 min`
   );
 
-  // helper: today's date in YYYY-MM-DD (useful if backend requires date param)
-  const todayString = () => {
+  // Memoize today's date calculation - only recalculates when component mounts
+  const todayString = useMemo(() => {
     const d = new Date();
     const yyyy = d.getFullYear();
     const mm = String(d.getMonth() + 1).padStart(2, "0");
     const dd = String(d.getDate()).padStart(2, "0");
     return `${yyyy}-${mm}-${dd}`;
-  };
+  }, []);
 
-  // fetch dashboard details
-  const dashboardData = async () => {
+  // Memoized fetch functions using useCallback to prevent recreation on every render
+  const dashboardData = useCallback(async () => {
     setLoadingDashboard(true);
     try {
-      const res = await getDashboardDetails(); // token handled by API interceptor
+      const res = await getDashboardDetails();
       if (res?.data) {
         setData(res.data);
-        console.log("dashboard data:", res.data);
-      } else {
-        console.warn("getDashboardDetails returned no data", res);
       }
     } catch (err) {
       console.error("getDashboardDetails error:", err?.response ?? err);
-      if (err?.response) {
-        console.error("status:", err.response.status, "data:", err.response.data);
-      }
     } finally {
       setLoadingDashboard(false);
     }
-  };
+  }, []);
 
-  // fetch today's workouts
-  const getTodaysWorkout = async () => {
+  const getTodaysWorkout = useCallback(async () => {
     setLoadingWorkouts(true);
     try {
-      // If your backend expects a date param (route /user/workout/:date), pass one.
-      // If not, pass an empty string to call /user/workout.
-      const backendRequiresDate = false; // set to `true` if your server route is /user/workout/:date
-      const dateToUse = backendRequiresDate ? todayString() : "";
-
-      console.log("getWorkouts calling with date:", dateToUse);
+      const backendRequiresDate = false;
+      const dateToUse = backendRequiresDate ? todayString : "";
       const res = await getWorkouts(dateToUse);
-      console.log("getWorkouts response:", res);
-      // server should return todaysWorkouts array under res.data.todaysWorkouts or res.data
       const todays = res?.data?.todaysWorkouts ?? res?.data ?? [];
       setTodaysWorkouts(Array.isArray(todays) ? todays : []);
     } catch (err) {
       console.error("getWorkouts failed:", err?.response ?? err);
-      if (err?.response) {
-        console.error("status:", err.response.status, "data:", err.response.data);
-      }
-      // keep todaysWorkouts as empty array
       setTodaysWorkouts([]);
     } finally {
       setLoadingWorkouts(false);
     }
-  };
+  }, [todayString]);
 
-  const addNewWorkout = async () => {
+  // Memoized add workout function
+  const addNewWorkout = useCallback(async () => {
     setButtonLoading(true);
     try {
-      // addWorkout expects the payload object (API will add token via interceptor)
       const payload = { workoutString: workout };
-      const res = await addWorkout(payload);
-      console.log("addWorkout response:", res);
-      // refresh both dashboard and todays workouts
-      await dashboardData();
-      await getTodaysWorkout();
+      await addWorkout(payload);
+      // Refresh both dashboard and today's workouts in parallel for better performance
+      await Promise.all([dashboardData(), getTodaysWorkout()]);
     } catch (err) {
       console.error("addWorkout failed:", err?.response ?? err);
-      // show friendly message (server may return an object with message)
       const serverMsg = err?.response?.data?.message ?? err?.message ?? "Failed to add workout";
       alert(serverMsg);
     } finally {
       setButtonLoading(false);
     }
-  };
+  }, [workout, dashboardData, getTodaysWorkout]);
 
-  // initial load
+  // Initial load - fetch data in parallel for faster loading
   useEffect(() => {
-    dashboardData();
-    getTodaysWorkout();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    Promise.all([dashboardData(), getTodaysWorkout()]);
+  }, [dashboardData, getTodaysWorkout]);
 
   return (
     <Container>
@@ -175,8 +153,11 @@ const Dashboard = () => {
 
         <FlexWrap>
           {counts.map((item, idx) => (
-            // provide stable key: prefer item.key or item.id; fallback to index
-            <CountsCard key={item.key ?? item.id ?? `counts-${idx}`} item={item} data={data} />
+            <CountsCard
+              key={item.key ?? item.id ?? `counts-${idx}`}
+              item={item}
+              value={data?.[item.key]}
+            />
           ))}
         </FlexWrap>
 

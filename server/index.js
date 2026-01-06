@@ -7,7 +7,15 @@ import UserRoutes from "./routes/User.js"
 dotenv.config()
 
 const app = express()
-app.use(cors())
+
+// CORS configuration with credentials support for Authorization header
+app.use(cors({
+  origin: process.env.CLIENT_URL || "http://localhost:3000",
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"]
+}))
+
 app.use(express.json({ limit: "50mb"}))
 app.use(express.urlencoded({ extended: true}))
 

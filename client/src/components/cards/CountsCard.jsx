@@ -1,5 +1,5 @@
 import { Description } from "@mui/icons-material";
-import React from "react";
+import React, { memo } from "react";
 import styled from "styled-components";
 
 const Card = styled.div`
@@ -80,13 +80,12 @@ const Desc = styled.div`
   }
 `;
 
-const CountsCard = ({ item, data }) => {
-  // defensive formatting for numeric values
-  const rawVal = data?.[item.key];
-  const formattedValue =
-    typeof rawVal === "number" ? rawVal.toFixed(2) : rawVal ?? "0.00";
+const CountsCard = memo(({ item, value }) => {
+  // Memoize formatted value calculation
+  const formattedValue = React.useMemo(() => {
+    return typeof value === "number" ? value.toFixed(2) : value ?? "0.00";
+  }, [value]);
 
-  // If item contains a positive flag, use it; otherwise default to true for styling example
   const positive = item?.positive ?? true;
 
   return (
@@ -105,6 +104,8 @@ const CountsCard = ({ item, data }) => {
       </Icon>
     </Card>
   );
-};
+});
+
+CountsCard.displayName = "CountsCard";
 
 export default CountsCard;

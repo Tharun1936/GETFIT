@@ -46,18 +46,53 @@ const SignUp = () => {
     setLoading(true);
     setButtonDisabled(true);
     if (validateInputs()) {
-      await UserSignUp({ name, email, password })
-        .then((res) => {
-          dispatch(loginSuccess(res.data));
-          alert("Account Created Success");
-          setLoading(false);
-          setButtonDisabled(false);
-        })
-        .catch((err) => {
-          alert(err.response.data.message);
-          setLoading(false);
-          setButtonDisabled(false);
-        });
+      try {
+        const res = await UserSignUp({ name, email, password });
+        
+        // Check if response and data exist
+        if (!res || !res.data) {
+          throw new Error("Invalid response from server");
+        }
+
+        const { token, user } = res.data;
+        
+        // Validate token exists
+        if (!token) {
+          throw new Error("Token not received from server");
+        }
+
+        // Store token and dispatch login success
+        localStorage.setItem("getfit-app-token", token);
+        dispatch(loginSuccess(res.data));
+
+        alert("Account Created Success");
+      } catch (err) {
+        // Handle different error types
+        let errorMessage = "Sign up failed. Please try again.";
+        
+        if (err.response) {
+          // Server responded with error status
+          errorMessage = err.response.data?.message || err.response.data?.error || errorMessage;
+        } else if (err.request) {
+          // Request made but no response received (network error, CORS, etc.)
+          errorMessage = "Unable to connect to server. Please check your connection.";
+          console.error("Network error:", err.request);
+        } else if (err.message) {
+          // Error in request setup or other error
+          errorMessage = err.message;
+        }
+        
+        console.error("SignUp error:", err);
+        alert(errorMessage);
+      } finally {
+        // Always reset loading states
+        setLoading(false);
+        setButtonDisabled(false);
+      }
+    } else {
+      // Reset states if validation fails
+      setLoading(false);
+      setButtonDisabled(false);
     }
   };
   return (

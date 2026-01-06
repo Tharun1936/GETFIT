@@ -1,5 +1,6 @@
-import React, { useState } from "react";
-import { useSelector } from "react-redux"
+import React, { useEffect } from "react";
+import { useSelector, useDispatch } from "react-redux";
+import { useNavigate } from "react-router-dom";
 import { ThemeProvider } from "styled-components";
 import styled from "styled-components";
 import { lightTheme } from "./utils/theme";
@@ -8,6 +9,7 @@ import Authentication from "./pages/Authentication";
 import Navbar from "./components/Navbar";
 import Dashboard from "./pages/Dashboard";
 import Workouts from "./pages/Workouts";
+import { logout } from "./redux/reducers/userSlice";
 
 
 const Container = styled.div`
@@ -23,23 +25,88 @@ const Container = styled.div`
 `;
 
 
+// Protected Route Component
+const ProtectedRoute = ({ children }) => {
+  const { currentUser } = useSelector((state) => state.user);
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
+
+  useEffect(() => {
+    // Check if user is authenticated
+    const token = localStorage.getItem("getfit-app-token");
+    if (!token || !currentUser) {
+      dispatch(logout());
+      navigate("/", { replace: true });
+    }
+  }, [currentUser, navigate, dispatch]);
+
+  // Listen for unauthorized events from Axios interceptor
+  useEffect(() => {
+    const handleUnauthorized = () => {
+      dispatch(logout());
+      navigate("/", { replace: true });
+    };
+
+    window.addEventListener("unauthorized", handleUnauthorized);
+    return () => {
+      window.removeEventListener("unauthorized", handleUnauthorized);
+    };
+  }, [navigate, dispatch]);
+
+  if (!currentUser) {
+    return null; // Will redirect via useEffect
+  }
+
+  return children;
+};
+
 function App() {
-  const { currentUser } = useSelector((state)=>state.user)
+  const { currentUser } = useSelector((state) => state.user);
+  const dispatch = useDispatch();
+
+  // Handle unauthorized events globally
+  useEffect(() => {
+    const handleUnauthorized = () => {
+      dispatch(logout());
+    };
+
+    window.addEventListener("unauthorized", handleUnauthorized);
+    return () => {
+      window.removeEventListener("unauthorized", handleUnauthorized);
+    };
+  }, [dispatch]);
+
   return (
     <ThemeProvider theme={lightTheme}>
       <BrowserRouter>
         {currentUser ? (
           <Container>
-            <Navbar currentUser={currentUser}/>
-              <Routes>
-                <Route path="/" exact element={<Dashboard/>}/>
-                <Route path="/workouts" exact element={<Workouts/>}/>
-              </Routes>
+            <Navbar currentUser={currentUser} />
+            <Routes>
+              <Route
+                path="/"
+                exact
+                element={
+                  <ProtectedRoute>
+                    <Dashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/workouts"
+                exact
+                element={
+                  <ProtectedRoute>
+                    <Workouts />
+                  </ProtectedRoute>
+                }
+              />
+            </Routes>
           </Container>
         ) : (
-        <Container>
-          <Authentication />
-        </Container>
+          <Container>
+            <Authentication />
+          </Container>
         )}
       </BrowserRouter>
     </ThemeProvider>

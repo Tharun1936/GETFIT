@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { memo } from 'react'
 import styled from "styled-components"
 import { BarChart } from '@mui/x-charts';
 
@@ -59,19 +59,29 @@ const data = {
   ],
 }
 
-const WeeklyStatCard = ({ data }) => {
+const WeeklyStatCard = memo(({ data }) => {
+  const chartData = React.useMemo(() => {
+    if (!data?.totalWeeksCaloriesBurnt) return null;
+    return {
+      weeks: data.totalWeeksCaloriesBurnt.weeks,
+      caloriesBurned: data.totalWeeksCaloriesBurnt.caloriesBurned
+    };
+  }, [data?.totalWeeksCaloriesBurnt]);
+
   return (
     <Card>
-        <Title>Weekly calories Burned</Title>
-        {data?.totalWeeksCaloriesBurnt && <BarChart
-        xAxis={[
-            {scaleType: "band", data: data?.totalWeeksCaloriesBurnt?.weeks}
-        ]}
-        series={[{ data: data?.totalWeeksCaloriesBurnt?.caloriesBurned}]}
-        height={300}
-        />}
+      <Title>Weekly calories Burned</Title>
+      {chartData && (
+        <BarChart
+          xAxis={[{ scaleType: "band", data: chartData.weeks }]}
+          series={[{ data: chartData.caloriesBurned }]}
+          height={300}
+        />
+      )}
     </Card>
-  )
-}
+  );
+});
 
-export default WeeklyStatCard
+WeeklyStatCard.displayName = "WeeklyStatCard";
+
+export default WeeklyStatCard;

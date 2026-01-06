@@ -1,5 +1,5 @@
 import { FitnessCenterRounded, TimelapseRounded } from "@mui/icons-material";
-import React from "react";
+import React, { memo } from "react";
 import styled from "styled-components";
 
 const Card = styled.div`
@@ -51,7 +51,7 @@ const Details = styled.div`
   gap: 6px;
 `;
 
-const WorkoutCard = ({ workout }) => {
+const WorkoutCard = memo(({ workout }) => {
   return (
     <Card>
       <Category>#{workout?.category}</Category>
@@ -71,6 +71,8 @@ const WorkoutCard = ({ workout }) => {
       </Flex>
     </Card>
   );
-};
+});
+
+WorkoutCard.displayName = "WorkoutCard";
 
 export default WorkoutCard;

@@ -1,5 +1,5 @@
 import { PieChart } from '@mui/x-charts'
-import React from 'react'
+import React, { memo } from 'react'
 import styled from "styled-components"
 
 
@@ -29,19 +29,27 @@ const Title = styled.div`
 `
 
 
-const CategoryChart = ({ data }) => {
+const CategoryChart = memo(({ data }) => {
+  const pieData = React.useMemo(() => {
+    return data?.pieChartData || null;
+  }, [data?.pieChartData]);
+
   return (
     <Card>
-        <Title>Weekly calories Burned</Title>
-        {data?.pieChartData && (<PieChart
-        series={[{
-            data: data?.pieChartData,
+      <Title>Weekly calories Burned</Title>
+      {pieData && (
+        <PieChart
+          series={[{
+            data: pieData,
             innerRadius: 30,
-        }]}
-        height={300}
+          }]}
+          height={300}
         />
-    )}
+      )}
     </Card>
-  )
-}
-export default CategoryChart
+  );
+});
+
+CategoryChart.displayName = "CategoryChart";
+
+export default CategoryChart;

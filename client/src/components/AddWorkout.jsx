@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { memo, useCallback } from 'react'
 import styled from "styled-components"
 import TextInput from "./TextInput"
 import Button from "./Button"
@@ -27,15 +27,19 @@ const Title = styled.div`
 `
 
 // note prop name changed to `addNewWorkout`
-const AddWorkout = ({ workout, setWorkout, addNewWorkout, buttonLoading }) => {
-  const handleClick = () => {
+const AddWorkout = memo(({ workout, setWorkout, addNewWorkout, buttonLoading }) => {
+  const handleClick = useCallback(() => {
     if (typeof addNewWorkout !== "function") {
       console.error("addNewWorkout prop is not a function:", addNewWorkout);
       alert("Action not available. Please try again.");
       return;
     }
     addNewWorkout();
-  };
+  }, [addNewWorkout]);
+
+  const handleChange = useCallback((e) => {
+    setWorkout(e.target.value);
+  }, [setWorkout]);
 
   return (
     <Card>
@@ -53,7 +57,7 @@ const AddWorkout = ({ workout, setWorkout, addNewWorkout, buttonLoading }) => {
 -Weight
 -Duration`}
         value={workout}
-        handelChange={(e) => setWorkout(e.target.value)}
+        handelChange={handleChange}
       />
       <Button
         text="Add Workout"
@@ -63,7 +67,9 @@ const AddWorkout = ({ workout, setWorkout, addNewWorkout, buttonLoading }) => {
         isDisabled={buttonLoading}
       />
     </Card>
-  )
-}
+  );
+});
 
-export default AddWorkout
+AddWorkout.displayName = "AddWorkout";
+
+export default AddWorkout;
