@@ -6,7 +6,7 @@ import WeeklyStatCard from "../components/cards/WeeklyStatCard";
 import CategoryChart from "../components/cards/CategoryChart";
 import AddWorkout from "../components/AddWorkout";
 import WorkoutCard from "../components/cards/WorkoutCard";
-import { addWorkout, getDashboardDetails, getWorkouts } from "../api";
+import { addWorkout, getDashboardDetails, getWorkouts, updateWorkout, deleteWorkout } from "../api";
 
 const Container = styled.div`
   flex: 1;
@@ -141,6 +141,30 @@ const Dashboard = () => {
     }
   }, [workout, dashboardData, getTodaysWorkout]);
 
+  // Handle edit workout
+  const handleEditWorkout = useCallback((workout) => {
+    // Navigate to workouts page with edit mode
+    window.location.href = `/workouts?edit=${workout._id}`;
+  }, []);
+
+  // Handle delete workout
+  const handleDeleteWorkout = useCallback(async (workoutId) => {
+    if (!window.confirm("Are you sure you want to delete this workout?")) return;
+
+    setButtonLoading(true);
+    try {
+      await deleteWorkout(workoutId);
+      alert("Workout deleted successfully!");
+      // Refresh both dashboard and today's workouts
+      await Promise.all([dashboardData(), getTodaysWorkout()]);
+    } catch (err) {
+      console.error("Failed to delete workout:", err);
+      alert("Failed to delete workout");
+    } finally {
+      setButtonLoading(false);
+    }
+  }, [dashboardData, getTodaysWorkout]);
+
   // Initial load - fetch data in parallel for faster loading
   useEffect(() => {
     Promise.all([dashboardData(), getTodaysWorkout()]);
@@ -183,7 +207,12 @@ const Dashboard = () => {
             ) : (
               todaysWorkouts.map((w, idx) => (
                 // prefer DB id fields, fallback to index
-                <WorkoutCard key={w._id ?? w.id ?? `workout-${idx}`} workout={w} />
+                <WorkoutCard 
+                  key={w._id ?? w.id ?? `workout-${idx}`} 
+                  workout={w}
+                  onEdit={handleEditWorkout}
+                  onDelete={handleDeleteWorkout}
+                />
               ))
             )}
           </CardWrapper>

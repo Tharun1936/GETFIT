@@ -1,4 +1,4 @@
-import { FitnessCenterRounded, TimelapseRounded } from "@mui/icons-material";
+import { FitnessCenterRounded, TimelapseRounded, Edit, Delete } from "@mui/icons-material";
 import React, { memo } from "react";
 import styled from "styled-components";
 
@@ -51,11 +51,58 @@ const Details = styled.div`
   gap: 6px;
 `;
 
-const WorkoutCard = memo(({ workout }) => {
+const Actions = styled.div`
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+  padding-top: 12px;
+  border-top: 1px solid ${({ theme }) => theme.text_primary + 20};
+`;
+
+const ActionButton = styled.button`
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid ${({ theme }) => theme.text_primary + 40};
+  border-radius: 8px;
+  background: transparent;
+  color: ${({ theme }) => theme.text_primary};
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.3s ease;
+
+  &:hover {
+    background: ${({ theme }) => theme.primary + 20};
+    border-color: ${({ theme }) => theme.primary};
+  }
+
+  &.delete {
+    color: ${({ theme }) => theme.red || '#ff4444'};
+    border-color: ${({ theme }) => theme.red + 40 || 'rgba(255, 68, 68, 0.4)'};
+    
+    &:hover {
+      background: ${({ theme }) => theme.red + 20 || 'rgba(255, 68, 68, 0.2)'};
+      border-color: ${({ theme }) => theme.red || '#ff4444'};
+    }
+  }
+`;
+
+const CaloriesBadge = styled.div`
+  font-size: 14px;
+  color: ${({ theme }) => theme.primary};
+  font-weight: 600;
+  margin-top: 4px;
+`;
+
+const WorkoutCard = memo(({ workout, onEdit, onDelete }) => {
   return (
     <Card>
       <Category>#{workout?.category}</Category>
-      <Name>{workout?.workoutName}</Name>
+      <Name>{workout?.WorkoutName || workout?.workoutName}</Name>
       <Sets>
         Count: {workout?.sets} sets X {workout?.reps} reps
       </Sets>
@@ -69,6 +116,27 @@ const WorkoutCard = memo(({ workout }) => {
           {workout?.duration} min
         </Details>
       </Flex>
+      {workout?.caloriesBurned > 0 && (
+        <CaloriesBadge>
+          🔥 {Math.round(workout.caloriesBurned)} kcal
+        </CaloriesBadge>
+      )}
+      {(onEdit || onDelete) && (
+        <Actions>
+          {onEdit && (
+            <ActionButton onClick={() => onEdit(workout)}>
+              <Edit sx={{ fontSize: "16px" }} />
+              Edit
+            </ActionButton>
+          )}
+          {onDelete && (
+            <ActionButton className="delete" onClick={() => onDelete(workout._id)}>
+              <Delete sx={{ fontSize: "16px" }} />
+              Delete
+            </ActionButton>
+          )}
+        </Actions>
+      )}
     </Card>
   );
 });

@@ -164,15 +164,18 @@ const Navbar = ({ currentUser }) => {
           <NavItems>
             <Navlink to="/">Dashboard</Navlink>
             <Navlink to="/workouts">Workouts</Navlink>
-            <Navlink to="/tutorials">Tutorilas</Navlink>
-            <Navlink to="/blogs">Blogs</Navlink>
+            <Navlink to="/tutorials">Tutorials</Navlink>
+            <Navlink to="/goals">Goals</Navlink>
+            <Navlink to="/analytics">Analytics</Navlink>
             <Navlink to="/contact">Contact</Navlink>
           </NavItems>
 
           <UserContainer>
-            <Avatar src={currentUser?.img}>
-              {currentUser?.name?.[0] ?? ""}
-            </Avatar>
+            <Navlink to="/profile" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Avatar src={currentUser?.img}>
+                {currentUser?.name?.[0] ?? ""}
+              </Avatar>
+            </Navlink>
             <TextButton onClick={() => dispatch(logout())}>Logout</TextButton>
           </UserContainer>
         </NavContainer>
@@ -187,13 +190,19 @@ const Navbar = ({ currentUser }) => {
           Workouts
         </Navlink>
         <Navlink to="/tutorials" onClick={() => setIsOpen(false)}>
-          Tutorilas
+          Tutorials
         </Navlink>
-        <Navlink to="/blogs" onClick={() => setIsOpen(false)}>
-          Blogs
+        <Navlink to="/goals" onClick={() => setIsOpen(false)}>
+          Goals
+        </Navlink>
+        <Navlink to="/analytics" onClick={() => setIsOpen(false)}>
+          Analytics
         </Navlink>
         <Navlink to="/contact" onClick={() => setIsOpen(false)}>
           Contact
+        </Navlink>
+        <Navlink to="/profile" onClick={() => setIsOpen(false)}>
+          Profile
         </Navlink>
       </MobileMenu>
     </NavWrapper>

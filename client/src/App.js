@@ -9,6 +9,11 @@ import Authentication from "./pages/Authentication";
 import Navbar from "./components/Navbar";
 import Dashboard from "./pages/Dashboard";
 import Workouts from "./pages/Workouts";
+import Tutorials from "./pages/Tutorials";
+import Contact from "./pages/Contact";
+import Profile from "./pages/Profile";
+import Goals from "./pages/Goals";
+import Analytics from "./pages/Analytics";
 import { logout } from "./redux/reducers/userSlice";
 
 
@@ -98,6 +103,51 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <Workouts />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/tutorials"
+                exact
+                element={
+                  <ProtectedRoute>
+                    <Tutorials />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/contact"
+                exact
+                element={
+                  <ProtectedRoute>
+                    <Contact />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/profile"
+                exact
+                element={
+                  <ProtectedRoute>
+                    <Profile />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/goals"
+                exact
+                element={
+                  <ProtectedRoute>
+                    <Goals />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/analytics"
+                exact
+                element={
+                  <ProtectedRoute>
+                    <Analytics />
                   </ProtectedRoute>
                 }
               />
